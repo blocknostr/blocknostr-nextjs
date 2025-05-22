@@ -303,6 +303,8 @@ export default function ProfilePage({ userOverride, onClose }: ProfilePageProps)
 
     return (
         <div className="max-w-2xl mx-auto p-6 text-white relative">
+            {/* DEBUG: Show user and pubkey values */}
+            <div className="mb-2 text-xs text-gray-400">user: {user}<br/>pubkey: {pubkey}</div>
             {onClose && (
                 <button
                     className="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl font-bold z-10"

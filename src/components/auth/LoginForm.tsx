@@ -7,22 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Wallet } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-// Add a type declaration for window.nostr to fix TS errors
-// This must be at the top level, not inside the component
-// If already present, ensure it's not duplicated
-
-// Minimal WindowNostr interface for extension compatibility
-interface WindowNostr {
-    getPublicKey: () => Promise<string>;
-    // Add other methods if needed
-}
-
-declare global {
-    interface Window {
-        nostr?: WindowNostr;
-    }
-}
-
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 const nostr = typeof window !== 'undefined' ? (window as any).nostr : undefined;
@@ -39,38 +23,34 @@ export function LoginForm() {
         }
     }, [pubkey, router]);
 
-    const handleExtensionLogin = () => {
+    const handleExtensionLogin = async () => {
         setIsLoading(true);
         try {
-            if (typeof window !== 'undefined' && window.nostr) {
-                window.nostr.getPublicKey().then((pubkey: string) => {
-                    if (pubkey) {
-                        login();
-                        toast({
-                            title: 'Logged in with extension',
-                            description: 'Successfully logged in with your NOSTR extension',
-                        });
-                        router.push('/profile');
-                    } else {
-                        throw new Error('No public key found in extension');
-                    }
-                }).catch((err: unknown) => {
-                    console.error('Error getting public key from extension:', err);
+            if (typeof window !== 'undefined') {
+                // Debug: show if window.nostr is present
+                if (!window.nostr) {
                     toast({
-                        title: 'Extension error',
-                        description: 'Could not get your public key from the extension',
+                        title: 'No NOSTR extension found',
+                        description: 'window.nostr is not present. Please install a NOSTR extension like nos2x or Alby.',
                         variant: 'destructive',
                     });
-                }).finally(() => {
                     setIsLoading(false);
+                    return;
+                }
+                // Debug: show nostr object keys
+                // toast({ title: 'window.nostr detected', description: Object.keys(window.nostr).join(', ') });
+                await login();
+                toast({
+                    title: 'Logged in with extension',
+                    description: 'Successfully logged in with your NOSTR extension',
                 });
+                router.push('/profile');
             } else {
                 toast({
                     title: 'No NOSTR extension found',
-                    description: 'Please install a NOSTR extension like nos2x or Alby',
+                    description: 'window is undefined. Please use a browser environment.',
                     variant: 'destructive',
                 });
-                setIsLoading(false);
             }
         } catch (error) {
             console.error('Extension login error:', error);
@@ -79,6 +59,7 @@ export function LoginForm() {
                 description: 'Error connecting to your NOSTR extension',
                 variant: 'destructive',
             });
+        } finally {
             setIsLoading(false);
         }
     };

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNostr } from "@/hooks/useNostr";
 import { fetchNostrProfile, getHealthyRelays } from "@/lib/nostr/relay";
+import { nip19 } from "nostr-tools";
 
 interface ProfilePaneProps {
     pubkey: string;
@@ -89,6 +90,17 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
                     onClick={onClose}
                     aria-label="Close profile pane"
                 >×</button>
+
+                {/* Wallet address and npub display */}
+                <div className="mb-4 text-xs text-gray-400 break-all">
+                    {userProfile?.pubkey && (
+                        <>
+                            <div><span className="font-semibold">Wallet:</span> {userProfile.pubkey}</div>
+                            <div><span className="font-semibold">npub:</span> {nip19.npubEncode(userProfile.pubkey)}</div>
+                        </>
+                    )}
+                </div>
+
                 <div className="flex items-center gap-4 mb-6">
                     <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex-shrink-0 flex items-center justify-center">
                         {userProfile?.picture ? (
@@ -123,6 +135,11 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
                         onSubmit={e => {
                             e.preventDefault();
                             updateProfile({ display_name: editDisplayName, about: editBio });
+                            setUserProfile({
+                                ...userProfile,
+                                displayName: editDisplayName,
+                                bio: editBio,
+                            });
                             setEditing(false);
                         }}
                     >

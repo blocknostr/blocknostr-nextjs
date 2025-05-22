@@ -70,6 +70,24 @@ export function useNostr() {
         return window.nostr;
     };
 
+    // --- Persist pubkey in localStorage ---
+    // On mount, rehydrate pubkey from localStorage if present
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const storedPubkey = window.localStorage.getItem('nostr_pubkey');
+            if (storedPubkey && !pubkey) {
+                setPubkey(storedPubkey);
+            }
+        }
+    }, []);
+
+    // When pubkey changes, persist to localStorage
+    useEffect(() => {
+        if (typeof window !== 'undefined' && pubkey) {
+            window.localStorage.setItem('nostr_pubkey', pubkey);
+        }
+    }, [pubkey]);
+
     // Auth/login
     const login = useCallback(async () => {
         const nostr = getWindowNostr();
@@ -371,11 +389,14 @@ export function useNostr() {
                     const { healthyRelays } = await getHealthyRelays();
                     if (healthyRelays.length === 0) return;
 
-                    const contactListEvents = await fetchNostrFeed(healthyRelays, {
-                        authors: [pubkey],
+                    // Use correct filter type for nostr-tools
+                    const filter = {
                         kinds: [3],
-                        limit: 1, // Get the latest contact list
-                    });
+                        authors: [pubkey],
+                        limit: 1,
+                    };
+                    // @ts-ignore: Filter type is broader than FeedOptions
+                    const contactListEvents = await fetchNostrFeed(healthyRelays, filter);
 
                     if (contactListEvents.length > 0) {
                         const latestContactList = contactListEvents.sort((a: any, b: any) => b.created_at - a.created_at)[0];
