@@ -29,12 +29,12 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
         (async () => {
             const relaysObj = await getHealthyRelays();
             const meta = await fetchNostrProfile(relaysObj.healthyRelays, pubkey);
-            let username = meta?.name || pubkey?.slice(0, 6) + "..." + pubkey?.slice(-4);
-            let displayName = meta?.display_name || meta?.name || username;
+            let username = meta?.name || pubkey;
+            let displayName = meta?.display_name || username;
             let picture = meta?.picture || "/file.svg";
             if (meta) {
                 setUserProfile({
-                    displayName,
+                    display_name: displayName,
                     bio: meta.about,
                     picture,
                     username,
@@ -44,20 +44,20 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
                 setEditBio(meta.about || "");
             } else if (isSelf && profile) {
                 setUserProfile({
-                    displayName: profile.display_name || profile.name || pubkey?.slice(0, 6) + "..." + pubkey?.slice(-4),
+                    display_name: profile.display_name || profile.username || pubkey,
                     bio: profile.about,
                     picture: profile.picture || "/file.svg",
-                    username: profile.name || pubkey?.slice(0, 6) + "..." + pubkey?.slice(-4),
+                    username: profile.username || pubkey,
                     pubkey,
                 });
-                setEditDisplayName(profile.display_name || profile.name || "");
+                setEditDisplayName(profile.display_name || profile.username || "");
                 setEditBio(profile.about || "");
             } else {
                 setUserProfile({
-                    displayName: pubkey?.slice(0, 6) + "..." + pubkey?.slice(-4),
+                    display_name: pubkey,
                     bio: "",
                     picture: "/file.svg",
-                    username: pubkey?.slice(0, 6) + "..." + pubkey?.slice(-4),
+                    username: pubkey,
                     pubkey,
                 });
             }
@@ -67,7 +67,7 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
 
     useEffect(() => {
         if (userProfile) {
-            setEditDisplayName(userProfile.displayName);
+            setEditDisplayName(userProfile.display_name);
             setEditBio(userProfile.bio);
             setEditUsername(userProfile.username || "");
             setEditPicture(userProfile.picture || "");
@@ -135,7 +135,7 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
                     </div>
                     <div className="min-w-0 flex flex-col">
                         <div className="flex items-center gap-2">
-                            <span className="font-semibold text-white truncate text-lg">{userProfile?.displayName || userProfile?.username || userProfile?.pubkey?.slice(0, 8) + "..."}</span>
+                            <span className="font-semibold text-white truncate text-lg">{userProfile?.display_name || userProfile?.username || userProfile?.pubkey?.slice(0, 8) + "..."}</span>
                             {/* NIP-05 Verification Badge */}
                             {userProfile?.nip05 && (
                                 <span
@@ -180,7 +180,7 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
                             e.preventDefault();
                             updateProfile({
                                 display_name: editDisplayName,
-                                name: editUsername,
+                                username: editUsername,
                                 about: editBio,
                                 picture: editPicture,
                                 banner: editBanner,
@@ -189,7 +189,7 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
                             });
                             setUserProfile({
                                 ...userProfile,
-                                displayName: editDisplayName,
+                                display_name: editDisplayName,
                                 username: editUsername,
                                 bio: editBio,
                                 picture: editPicture,

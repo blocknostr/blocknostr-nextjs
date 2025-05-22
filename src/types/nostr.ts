@@ -2,11 +2,16 @@
 import { Event } from 'nostr-tools';
 
 export interface NostrProfile {
-    displayName?: string;
-    bio?: string;
-    picture?: string;
-    username?: string;
-    pubkey?: string;
+    username?: string; // Always set: mapped from 'name' in Nostr spec
+    display_name?: string; // Nostr spec: display name
+    about?: string; // Nostr spec: bio
+    picture?: string; // Nostr spec: avatar
+    banner?: string; // Nostr spec: banner
+    website?: string; // Nostr spec: website
+    lud06?: string; // Nostr spec: LNURL
+    lud16?: string; // Nostr spec: LN Address
+    nip05?: string; // Nostr spec: NIP-05 identifier
+    pubkey?: string; // Always set: user's pubkey
 }
 
 export interface NostrEvent extends Event {

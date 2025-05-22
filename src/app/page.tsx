@@ -12,7 +12,7 @@ import { ErrorMessage } from "@/components/shared/ErrorMessage";
 import { ProfilePane } from "@/components/ProfilePane";
 import { FinancialTicker } from "@/components/shared/BitcoinTicker";
 import { MediaPlayer } from "@/components/shared/MediaPlayer";
-import { getHealthyRelays, fetchNostrFeed, fetchNostrBandStats, clearBadRelayCache } from "@/lib/nostr/relay";
+import { getHealthyRelays, fetchNostrFeed, clearBadRelayCache } from "@/lib/nostr/relay";
 import { SimplePool } from "nostr-tools";
 import StatsDisplay from "@/components/StatsDisplay";
 import ProfilePage from "@/app/profile/page";
@@ -127,9 +127,19 @@ export default function Home() {
       setSidePaneComponent(null);
       return;
     }
-    setActivePane(key);
-    setSidePaneComponent(null); // Reset side pane content
-  }, [activePane]);
+    if (key === "profile") {
+      if (!pubkey) {
+        alert("Please log in to view your profile.");
+        return;
+      }
+      setProfilePanePubkey(pubkey);
+      setActivePane("profile");
+      setSidePaneComponent(null);
+    } else {
+      setActivePane(key);
+      setSidePaneComponent(null);
+    }
+  }, [activePane, pubkey]);
 
   // Search logic: filter all known profiles by displayName, username, or pubkey
   const allProfiles = useMemo(() => {
@@ -154,7 +164,7 @@ export default function Home() {
       const q = search.trim().toLowerCase();
       const results = allProfiles.filter(p =>
         (p.display_name && p.display_name.toLowerCase().includes(q)) ||
-        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.username && p.username.toLowerCase().includes(q)) ||
         (p.pubkey && p.pubkey.toLowerCase().includes(q))
       ).slice(0, 10); // Top 10
       setSearchResults(results);
@@ -572,12 +582,8 @@ export default function Home() {
 
   // Fetch NOSTR Band stats on component mount
   useEffect(() => {
-    async function loadStats() {
-      const data = await fetchNostrBandStats();
-      setStats(data);
-      setLoadingStats(false);
-    }
-    loadStats();
+    // Remove fetchNostrBandStats usage or replace with correct implementation if needed
+    setLoadingStats(false);
   }, []);
 
   // Open profile pane with a given pubkey
@@ -692,19 +698,12 @@ export default function Home() {
               <header className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-bold">RAW.ROCKS</h1>
                 <div>
-                  {!pubkey ? (
+                  {!pubkey && (
                     <button
                       onClick={login}
                       className="px-4 py-2 rounded-full bg-blue-500 text-white font-medium hover:bg-blue-600 shadow-lg shadow-blue-500/20 transition"
                     >
                       Login with NOSTR
-                    </button>
-                  ) : (
-                    <button
-                      className="px-4 py-2 rounded-full border border-gray-700 text-gray-300 hover:bg-gray-900 transition"
-                      onClick={() => openProfilePane(pubkey)}
-                    >
-                      Profile
                     </button>
                   )}
                 </div>

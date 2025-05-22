@@ -66,6 +66,11 @@ export default function ProfilePage({ userOverride, onClose }: ProfilePageProps)
                     setUserProfile(profile);
                     setEditDisplayName(profile?.display_name || "");
                     setEditBio(profile?.about || "");
+                    setEditUsername(profile?.username || "");
+                    setEditPicture(profile?.picture || "");
+                    setEditBanner(profile?.banner || "");
+                    setEditWebsite(profile?.website || "");
+                    setEditNip05(profile?.nip05 || "");
                     setUserPosts(events.filter(ev => ev.pubkey === user && ev.kind === 1));
                 } else {
                     // Get healthy relays
@@ -73,10 +78,10 @@ export default function ProfilePage({ userOverride, onClose }: ProfilePageProps)
                     // Fetch profile from relays
                     const meta = await fetchNostrProfile(healthyRelays, user);
                     setUserProfile({
-                        displayName: meta?.display_name || meta?.name || user,
+                        display_name: meta?.display_name || meta?.name || user,
                         bio: meta?.about,
                         picture: meta?.picture,
-                        username: meta?.name,
+                        username: meta?.name || user,
                         pubkey: user,
                     });
                     // Try fetching posts with 'authors' filter first
@@ -103,7 +108,7 @@ export default function ProfilePage({ userOverride, onClose }: ProfilePageProps)
                         ...ev,
                         media: [],
                         profile: {
-                            displayName: meta?.display_name || meta?.name || user,
+                            display_name: meta?.display_name || meta?.name || user,
                             username: meta?.name || user,
                             picture: meta?.picture,
                             bio: meta?.about,
@@ -267,7 +272,7 @@ export default function ProfilePage({ userOverride, onClose }: ProfilePageProps)
 
     useEffect(() => {
         if (userProfile) {
-            setEditDisplayName(userProfile.displayName);
+            setEditDisplayName(userProfile.display_name);
             setEditBio(userProfile.bio ?? userProfile.about ?? "");
             setEditUsername(userProfile.username || "");
             setEditPicture(userProfile.picture || "");
@@ -345,7 +350,7 @@ export default function ProfilePage({ userOverride, onClose }: ProfilePageProps)
                         )}
                     </div>
                     <div className="flex-1 flex flex-col gap-1">
-                        <h2 className="text-3xl font-bold leading-tight">{userProfile?.displayName || userProfile?.username || userProfile?.pubkey?.slice(0, 8) + "..."}</h2>
+                        <h2 className="text-3xl font-bold leading-tight">{userProfile?.display_name || userProfile?.username || userProfile?.pubkey?.slice(0, 8) + "..."}</h2>
                         <div className="flex items-center gap-2">
                             <span className="text-gray-400 text-lg font-mono">@{userProfile?.username || userProfile?.pubkey?.slice(0, 8) + "..."}</span>
                             {/* Follow/Unfollow button for other users */}
@@ -419,7 +424,7 @@ export default function ProfilePage({ userOverride, onClose }: ProfilePageProps)
                         e.preventDefault();
                         await updateProfile({
                             display_name: editDisplayName,
-                            name: editUsername,
+                            username: editUsername,
                             about: editBio,
                             picture: editPicture,
                             banner: editBanner,

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import StatsDisplay from "../StatsDisplay";
+import { useNostr } from "@/hooks/useNostr";
 
 interface SidebarProps {
     onNav: (key: string) => void;
@@ -20,6 +19,12 @@ const navItems = [
 
 export default function Sidebar({ onNav, activePane }: SidebarProps) {
     const router = useRouter();
+    const { pubkey, profile } = useNostr();
+    // Fallbacks for avatar and username
+    const avatar = profile?.picture || "/file.svg";
+    // Use display_name for display, username for handle
+    const displayName = profile?.display_name || profile?.username || (profile?.pubkey ? profile.pubkey.slice(0, 8) + "..." : "");
+    const username = profile?.username || (profile?.pubkey ? profile.pubkey.slice(0, 8) + "..." : "");
     return (
         <aside className="h-screen w-64 bg-gray-950 border-r border-gray-800 flex flex-col justify-between fixed left-0 top-0 z-40">
             <div>
@@ -36,8 +41,18 @@ export default function Sidebar({ onNav, activePane }: SidebarProps) {
                             {item.label}
                         </button>
                     ))}
+                    {/* Add Profile link below Chat */}
+                    <button
+                        key="profile"
+                        className={`px-6 py-3 flex items-center gap-3 text-lg rounded-lg transition-colors w-full text-left ${activePane === "profile" ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white" : "text-gray-300 hover:bg-gray-800 hover:text-white"}`}
+                        onClick={() => onNav("profile")}
+                    >
+                        Profile
+                    </button>
                 </nav>
             </div>
+            {/* User profile at bottom */}
+            {/* Removed user profile section from sidebar */}
         </aside>
     );
 }

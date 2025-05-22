@@ -32,15 +32,15 @@ export const RELAYS = [
 ];
 
 export interface NostrProfile {
-    name?: string; // NIP-01 field for username
-    display_name?: string; // NIP-01 field for display name
-    about?: string; // NIP-01 field for bio
-    picture?: string; // NIP-01 field for picture URL
-    banner?: string; // NIP-01 field for banner URL
-    website?: string; // NIP-01 field for website
-    lud06?: string; // NIP-01 field for LN URL (paynym)
-    lud16?: string; // NIP-01 field for LN Address
-    nip05?: string; // NIP-05 identifier
+    username?: string; // Always set: mapped from 'name' in Nostr spec
+    display_name?: string;
+    about?: string;
+    picture?: string;
+    banner?: string;
+    website?: string;
+    lud06?: string;
+    lud16?: string;
+    nip05?: string;
     pubkey?: string; // Added for convenience
 }
 
@@ -116,7 +116,11 @@ export function useNostr() {
                 if (healthyRelays.length > 0) {
                     const userProfileData = await fetchNostrProfile(healthyRelays, pk);
                     if (userProfileData) {
-                        const userProfile: NostrProfile = { ...userProfileData, pubkey: pk };
+                        const userProfile: NostrProfile = {
+                            ...userProfileData,
+                            pubkey: pk,
+                            username: userProfileData.name || pk,
+                        };
                         setProfile(userProfile);
                         profileCache.current[pk] = userProfile;
                     }
@@ -161,7 +165,11 @@ export function useNostr() {
                 await Promise.all(profilesToFetch.map(async (pk) => {
                     const meta = await fetchNostrProfile(healthyRelays, pk);
                     if (meta) {
-                        profileCache.current[pk] = { ...meta, pubkey: pk };
+                        profileCache.current[pk] = {
+                            ...meta,
+                            pubkey: pk,
+                            username: meta.name || pk,
+                        };
                     }
                 }));
             }
@@ -174,8 +182,7 @@ export function useNostr() {
                     media.push(match[1]);
                 }
 
-                const userProf = profileCache.current[ev.pubkey] || { pubkey: ev.pubkey };
-                const displayName = userProf.display_name || userProf.name || `${ev.pubkey.slice(0, 6)}...${ev.pubkey.slice(-4)}`;
+                const userProf = profileCache.current[ev.pubkey] || { pubkey: ev.pubkey, username: ev.pubkey };
                 const picture = userProf.picture || "/file.svg"; // Default avatar
 
                 return {
@@ -183,9 +190,10 @@ export function useNostr() {
                     media,
                     profile: {
                         ...userProf,
-                        display_name: displayName,
-                        name: userProf.name || displayName,
-                        picture: picture,
+                        display_name: userProf.display_name || userProf.username || `${ev.pubkey.slice(0, 6)}...${ev.pubkey.slice(-4)}`,
+                        picture: userProf.picture || "/file.svg",
+                        username: userProf.username || ev.pubkey,
+                        pubkey: ev.pubkey,
                     },
                 };
             });
@@ -252,7 +260,7 @@ export function useNostr() {
 
             if (await publishEvent(signedEvent)) {
                 // Optimistic update
-                const currentProfile = profileCache.current[pubkey] || { pubkey };
+                const currentProfile = profileCache.current[pubkey] || { pubkey, username: pubkey };
                 setEvents(prev => [
                     {
                         id: signedEvent.id,
@@ -263,8 +271,8 @@ export function useNostr() {
                         tags: signedEvent.tags,
                         media: [], // Derive media if needed, or leave for display component
                         profile: {
-                            display_name: currentProfile.display_name || currentProfile.name || `${pubkey.slice(0, 6)}...${pubkey.slice(-4)}`,
-                            name: currentProfile.name || `${pubkey.slice(0, 6)}...${pubkey.slice(-4)}`,
+                            display_name: currentProfile.display_name || currentProfile.username || `${pubkey.slice(0, 6)}...${pubkey.slice(-4)}`,
+                            username: currentProfile.username || pubkey,
                             picture: currentProfile.picture || "/file.svg",
                             pubkey: pubkey,
                         }
@@ -294,7 +302,7 @@ export function useNostr() {
         try {
             // Ensure only valid profile fields are included
             const contentPayload: any = {};
-            if (newProfileData.name !== undefined) contentPayload.name = newProfileData.name;
+            if (newProfileData.username !== undefined) contentPayload.name = newProfileData.username; // Always set 'name' from 'username'
             if (newProfileData.display_name !== undefined) contentPayload.display_name = newProfileData.display_name;
             if (newProfileData.about !== undefined) contentPayload.about = newProfileData.about;
             if (newProfileData.picture !== undefined) contentPayload.picture = newProfileData.picture;
@@ -314,7 +322,7 @@ export function useNostr() {
             };
             const signedEvent = await nostr.signEvent(unsignedEvent);
             if (await publishEvent(signedEvent)) {
-                const updatedFullProfile = { ...profile, ...newProfileData, pubkey };
+                const updatedFullProfile = { ...profile, ...newProfileData, pubkey, username: newProfileData.username };
                 setProfile(updatedFullProfile);
                 profileCache.current[pubkey] = updatedFullProfile; // Update cache
                 return true;
