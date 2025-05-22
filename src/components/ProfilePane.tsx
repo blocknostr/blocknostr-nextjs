@@ -17,6 +17,11 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
     const [editing, setEditing] = useState(false);
     const [editDisplayName, setEditDisplayName] = useState("");
     const [editBio, setEditBio] = useState("");
+    const [editUsername, setEditUsername] = useState("");
+    const [editPicture, setEditPicture] = useState("");
+    const [editBanner, setEditBanner] = useState("");
+    const [editWebsite, setEditWebsite] = useState("");
+    const [editNip05, setEditNip05] = useState("");
 
     useEffect(() => {
         if (!pubkey) return;
@@ -64,6 +69,11 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
         if (userProfile) {
             setEditDisplayName(userProfile.displayName);
             setEditBio(userProfile.bio);
+            setEditUsername(userProfile.username || "");
+            setEditPicture(userProfile.picture || "");
+            setEditBanner(userProfile.banner || "");
+            setEditWebsite(userProfile.website || "");
+            setEditNip05(userProfile.nip05 || "");
         }
     }, [userProfile]);
 
@@ -134,11 +144,24 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
                         className="mb-6 bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col gap-3"
                         onSubmit={e => {
                             e.preventDefault();
-                            updateProfile({ display_name: editDisplayName, about: editBio });
+                            updateProfile({
+                                display_name: editDisplayName,
+                                name: editUsername,
+                                about: editBio,
+                                picture: editPicture,
+                                banner: editBanner,
+                                website: editWebsite,
+                                nip05: editNip05,
+                            });
                             setUserProfile({
                                 ...userProfile,
                                 displayName: editDisplayName,
+                                username: editUsername,
                                 bio: editBio,
+                                picture: editPicture,
+                                banner: editBanner,
+                                website: editWebsite,
+                                nip05: editNip05,
                             });
                             setEditing(false);
                         }}
@@ -150,6 +173,13 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
                             onChange={e => setEditDisplayName(e.target.value)}
                             placeholder="Enter display name"
                         />
+                        <label className="font-semibold">Username</label>
+                        <input
+                            className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
+                            value={editUsername}
+                            onChange={e => setEditUsername(e.target.value)}
+                            placeholder="Enter username (e.g. alice)"
+                        />
                         <label className="font-semibold">Bio</label>
                         <textarea
                             className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 min-h-[60px]"
@@ -157,6 +187,34 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
                             onChange={e => setEditBio(e.target.value)}
                             placeholder="Enter your bio"
                             title="Bio"
+                        />
+                        <label className="font-semibold">Picture URL</label>
+                        <input
+                            className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
+                            value={editPicture}
+                            onChange={e => setEditPicture(e.target.value)}
+                            placeholder="https://example.com/avatar.png"
+                        />
+                        <label className="font-semibold">Banner URL</label>
+                        <input
+                            className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
+                            value={editBanner}
+                            onChange={e => setEditBanner(e.target.value)}
+                            placeholder="https://example.com/banner.jpg"
+                        />
+                        <label className="font-semibold">Website</label>
+                        <input
+                            className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
+                            value={editWebsite}
+                            onChange={e => setEditWebsite(e.target.value)}
+                            placeholder="https://yourwebsite.com"
+                        />
+                        <label className="font-semibold">NIP-05 Verification</label>
+                        <input
+                            className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
+                            value={editNip05}
+                            onChange={e => setEditNip05(e.target.value)}
+                            placeholder="username@domain.com"
                         />
                         <div className="flex gap-2 mt-2">
                             <button type="submit" className="px-4 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition">Save</button>
