@@ -782,13 +782,13 @@ export default function Home() {
                             openProfilePane(ev.pubkey);
                           }}
                           tabIndex={0}
-                          aria-label={`Open profile for ${ev.profile?.display_name || ev.profile?.username || ev.pubkey}`}
+                          aria-label={`Open profile for ${ev.profile?.display_name || ev.profile?.name || ev.profile?.username || ev.pubkey}`}
                         >
-                          {ev.profile?.display_name}
+                          {ev.profile?.display_name || ev.profile?.name || ev.profile?.username || ev.pubkey.slice(0, 8) + "..." }
                         </button>
                         <div className="text-sm text-gray-400 flex items-center gap-2">
                           <span>
-                            @{ev.profile?.name || (ev.profile?.pubkey ? `${ev.profile.pubkey.slice(0, 6)}...${ev.profile.pubkey.slice(-4)}` : ev.pubkey.slice(0, 6) + '...' + ev.pubkey.slice(-4))}
+                            @{ev.profile?.name || ev.profile?.username || (ev.profile?.pubkey ? `${ev.profile.pubkey.slice(0, 6)}...${ev.profile.pubkey.slice(-4)}` : ev.pubkey.slice(0, 6) + '...' + ev.pubkey.slice(-4))}
                           </span>
                           <span className="text-xs text-gray-500">{relativeTime(ev.created_at)}</span>
                         </div>
