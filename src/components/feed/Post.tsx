@@ -123,7 +123,7 @@ export function Post({ event, onChatOpen, onChatClose, isChatActive, isAnimating
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                             <span className="font-medium truncate">
-                                {event.profile?.displayName || event.profile?.username || `${event.pubkey.slice(0, 6)}...${event.pubkey.slice(-4)}`}
+                                {event.profile?.display_name || event.profile?.username || `${event.pubkey.slice(0, 6)}...${event.pubkey.slice(-4)}`}
                             </span>
                             <span className="text-gray-500 text-sm">
                                 {new Date(event.created_at * 1000).toLocaleTimeString()}

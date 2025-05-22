@@ -122,6 +122,10 @@ export default function Home() {
 
   // Handle sidebar navigation
   const handleNav = useCallback((key: string) => {
+    console.log("handleNav triggered with key:", key);
+    console.log("Current activePane:", activePane);
+    console.log("Current sidePaneComponent:", sidePaneComponent);
+
     if (activePane === key) {
       setActivePane(null);
       setSidePaneComponent(null);
@@ -135,6 +139,24 @@ export default function Home() {
       setProfilePanePubkey(pubkey);
       setActivePane("profile");
       setSidePaneComponent(null);
+    } else if (key === "post") {
+      setActivePane("post");
+      setSidePaneComponent(
+        <div className="p-8 text-white">
+          <h2 className="text-xl font-bold mb-4">Create a New Post</h2>
+          <CreatePost
+            onSubmit={async (content) => {
+              await post(content);
+              alert("Post created successfully!");
+              setActivePane(null);
+              setSidePaneComponent(null);
+            }}
+            isLoggedIn={!!pubkey}
+            onLogin={login}
+          />
+        </div>
+      );
+      return;
     } else {
       setActivePane(key);
       setSidePaneComponent(null);
@@ -608,6 +630,22 @@ export default function Home() {
       component = <ChatPage />;
     } else if (activePane === "profile" && profilePanePubkey) {
       component = <ProfilePage userOverride={profilePanePubkey} onClose={() => setActivePane(null)} />;
+    } else if (activePane === "post") {
+      component = (
+        <div className="p-8 text-white">
+          <h2 className="text-xl font-bold mb-4">Create a New Post</h2>
+          <CreatePost
+            onSubmit={async (content) => {
+              await post(content);
+              alert("Post created successfully!");
+              setActivePane(null);
+              setSidePaneComponent(null);
+            }}
+            isLoggedIn={!!pubkey}
+            onLogin={login}
+          />
+        </div>
+      );
     } else {
       // Placeholder for other panes
       component = <div className="p-8 text-white">Coming soon...</div>;
@@ -696,7 +734,7 @@ export default function Home() {
 
               {/* Header */}
               <header className="flex items-center justify-between mb-6">
-                <h1 className="text-2xl font-bold">RAW.ROCKS</h1>
+                {/* <h1 className="text-2xl font-bold">RAW.ROCKS</h1> */}
                 <div>
                   {!pubkey && (
                     <button

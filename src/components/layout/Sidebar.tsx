@@ -49,6 +49,14 @@ export default function Sidebar({ onNav, activePane }: SidebarProps) {
                     >
                         Profile
                     </button>
+                    {/* Add Post link below Profile */}
+                    <button
+                        key="post"
+                        className={`px-6 py-3 flex items-center gap-3 text-lg rounded-lg transition-colors w-full text-left border border-white/20 mt-6 ${activePane === "post" ? "bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white" : "text-gray-300 hover:bg-gray-800 hover:text-white"}`}
+                        onClick={() => onNav("post")}
+                    >
+                        Post
+                    </button>
                 </nav>
             </div>
             {/* User profile at bottom */}
