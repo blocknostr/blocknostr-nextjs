@@ -1,257 +1,150 @@
 "use client";
 import { useState, useEffect } from "react";
-import { WalletType, SavedWallet } from "../../types/wallet";
-import WalletConnectButton from "../../components/wallet/WalletConnectButton";
-import { useLocalStorage } from "../../hooks/use-local-storage";
-import WalletManager from "../../components/wallet/WalletManager";
-import WalletTypeSelector from "../../components/wallet/WalletTypeSelector";
-import AlephiumWalletLayout from "../../components/wallet/layouts/AlephiumWalletLayout";
-import BitcoinWalletLayout from "../../components/wallet/layouts/BitcoinWalletLayout";
-import ErgoWalletLayout from "../../components/wallet/layouts/ErgoWalletLayout";
-import { getAddressTransactions, getAddressTokens } from "../../lib/api/alephiumApi";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRouter } from "next/navigation";
 
-interface WalletStats {
-    transactionCount: number;
-    receivedAmount: number;
-    sentAmount: number;
-    tokenCount: number;
-}
+export default function WalletPage() {
+  const [connected, setConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState("");
+  const [balance, setBalance] = useState(0);
+  const [tokens, setTokens] = useState([]);
+  const [activeTab, setActiveTab] = useState("portfolio");
+  const [connectError, setConnectError] = useState("");
+  const router = useRouter();
 
-const WalletsPage = () => {
-    // Simulate wallet connection with local state
-    const [connected, setConnected] = useState(false);
-    const [savedWallets, setSavedWallets] = useLocalStorage<SavedWallet[]>("blocknoster_saved_wallets", []);
-    const [walletAddress, setWalletAddress] = useLocalStorage<string>("blocknoster_selected_wallet", "");
-    const [refreshFlag, setRefreshFlag] = useState<number>(0);
-    const [walletStats, setWalletStats] = useState<WalletStats>({
-        transactionCount: 0,
-        receivedAmount: 0,
-        sentAmount: 0,
-        tokenCount: 0
-    });
-    const [isStatsLoading, setIsStatsLoading] = useState<boolean>(true);
-    const [activeTab, setActiveTab] = useState<string>("portfolio");
-    const [selectedWalletType, setSelectedWalletType] = useLocalStorage<WalletType>("blocknoster_wallet_type", "Alephium");
-
-    // Auto-refresh data every 5 minutes
-    useEffect(() => {
-        const refreshInterval = setInterval(() => {
-            setRefreshFlag((prev: number) => prev + 1);
-        }, 5 * 60 * 1000);
-        return () => clearInterval(refreshInterval);
-    }, []);
-
-    // Initialize with first saved wallet or default
-    useEffect(() => {
-        if (connected && walletAddress) {
-            if (!savedWallets.some((w: SavedWallet) => w.address === walletAddress)) {
-                setSavedWallets([
-                    ...savedWallets,
-                    {
-                        address: walletAddress,
-                        label: "Connected Wallet",
-                        dateAdded: Date.now()
-                    }
-                ]);
-            }
-        } else if (savedWallets.length > 0 && !walletAddress) {
-            setWalletAddress(savedWallets[0].address);
-        } else if (!walletAddress) {
-            const defaultAddress = "raLUPHsewjm1iA2kBzRKXB2ntbj3j4puxbVvsZD8iK3r";
-            setWalletAddress(defaultAddress);
-            if (!savedWallets.some((w: SavedWallet) => w.address === defaultAddress)) {
-                setSavedWallets([
-                    ...savedWallets,
-                    {
-                        address: defaultAddress,
-                        label: "Connected Wallet",
-                        dateAdded: Date.now()
-                    }
-                ]);
-            }
+  // Explicit connect handler
+  const handleConnect = async () => {
+    setConnectError("");
+    if (typeof window !== "undefined" && (window as any).alephium) {
+      try {
+        const accounts = await (window as any).alephium.request({ method: "wallet_getAccounts" });
+        if (accounts && accounts.length > 0) {
+          setWalletAddress(accounts[0]);
+          setConnected(true);
+        } else {
+          setConnectError("No accounts found in Alephium wallet.");
         }
-    }, [connected, walletAddress, savedWallets, setSavedWallets, setWalletAddress]);
-
-    // Effect to fetch wallet statistics
-    useEffect(() => {
-        const fetchWalletStats = async () => {
-            if (!walletAddress || selectedWalletType !== "Alephium") {
-                setIsStatsLoading(false);
-                return;
-            }
-            setIsStatsLoading(true);
-            try {
-                const transactions = await getAddressTransactions(walletAddress, 50);
-                const tokens = await getAddressTokens(walletAddress);
-                let received = 0;
-                let sent = 0;
-                transactions.forEach((tx: any) => {
-                    const type = getTransactionType(tx);
-                    const amount = getTransactionAmount(tx);
-                    if (type === 'received') {
-                        received += amount;
-                    } else if (type === 'sent') {
-                        sent += amount;
-                    }
-                });
-                setWalletStats({
-                    transactionCount: transactions.length,
-                    receivedAmount: received,
-                    sentAmount: sent,
-                    tokenCount: tokens.length
-                });
-            } catch (error) {
-                console.error("Error fetching wallet stats:", error);
-            } finally {
-                setIsStatsLoading(false);
-            }
-        };
-        fetchWalletStats();
-    }, [walletAddress, refreshFlag, selectedWalletType]);
-
-    const handleDisconnect = async () => {
+      } catch (err) {
+        setConnectError("Failed to connect to Alephium wallet.");
         setConnected(false);
-        if (savedWallets.length > 0) {
-            setWalletAddress(savedWallets[0].address);
-        }
-    };
-
-    // Helper to determine if transaction is incoming or outgoing
-    const getTransactionType = (tx: any) => {
-        const isIncoming = tx.outputs?.some((output: any) => output.address === walletAddress);
-        const isOutgoing = tx.inputs?.some((input: any) => input.address === walletAddress);
-        if (isIncoming && !isOutgoing) return 'received';
-        if (isOutgoing) return 'sent';
-        return 'unknown';
-    };
-
-    // Calculate amount transferred to/from this address
-    const getTransactionAmount = (tx: any) => {
-        const type = getTransactionType(tx);
-        if (type === 'received') {
-            const amount = tx.outputs
-                .filter((output: any) => output.address === walletAddress)
-                .reduce((sum: number, output: any) => sum + Number(output.amount), 0);
-            return amount / 1e18;
-        } else if (type === 'sent') {
-            const amount = tx.outputs
-                .filter((output: any) => output.address !== walletAddress)
-                .reduce((sum: number, output: any) => sum + Number(output.amount), 0);
-            return amount / 1e18;
-        }
-        return 0;
-    };
-
-    if (!connected && savedWallets.length === 0 && !walletAddress) {
-        return (
-            <div className="max-w-3xl mx-auto px-4 py-12">
-                <div className="flex flex-col items-center justify-center space-y-6 text-center">
-                    <h2 className="text-3xl font-bold tracking-tight">Blockchain Portfolio Manager</h2>
-                    <p className="text-gray-400 max-w-md">
-                        Connect your wallet to track balances, view transactions, send crypto, and interact with dApps.
-                    </p>
-                    <div className="w-full max-w-md my-8">
-                        <WalletConnectButton />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-lg mt-8">
-                        <div className="p-4 border rounded-lg bg-gray-900">
-                            <h3 className="font-medium mb-2">Portfolio Tracking</h3>
-                            <p className="text-sm text-gray-400">Monitor your crypto balances in real-time</p>
-                        </div>
-                        <div className="p-4 border rounded-lg bg-gray-900">
-                            <h3 className="font-medium mb-2">Send & Receive</h3>
-                            <p className="text-sm text-gray-400">Transfer tokens with ease</p>
-                        </div>
-                        <div className="p-4 border rounded-lg bg-gray-900">
-                            <h3 className="font-medium mb-2">DApp Integration</h3>
-                            <p className="text-sm text-gray-400">Interact with blockchain dApps directly</p>
-                        </div>
-                        <div className="p-4 border rounded-lg bg-gray-900">
-                            <h3 className="font-medium mb-2">Transaction History</h3>
-                            <p className="text-sm text-gray-400">Detailed history of all your activity</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
+      }
+    } else {
+      setConnectError("Alephium Wallet extension not detected. ");
     }
+  };
 
-    return (
-        <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <h2 className="text-3xl font-bold tracking-tight">
-                                Blockchain Wallet
-                            </h2>
-                            <WalletTypeSelector
-                                selectedWallet={selectedWalletType}
-                                onSelectWallet={setSelectedWalletType}
-                            />
-                        </div>
-                        <p className="text-gray-400">
-                            {connected
-                                ? `Manage your ${selectedWalletType} assets and dApps`
-                                : `Viewing portfolio data for all tracked ${selectedWalletType} wallets`}
-                        </p>
-                    </div>
-                    <div className="flex gap-2">
-                        <button className="px-4 py-2 rounded bg-blue-500 text-white hover:bg-blue-600 transition" onClick={() => setConnected(true)}>
-                            Connect Wallet
-                        </button>
-                        {connected && (
-                            <button className="px-4 py-2 rounded border border-gray-700 text-gray-300 hover:bg-gray-900 transition h-9" onClick={handleDisconnect}>
-                                Disconnect Wallet
-                            </button>
-                        )}
-                    </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="md:col-span-2">
-                        {selectedWalletType === "Alephium" && (
-                            <div className="w-full">
-                                <div className="grid grid-cols-3 max-w-md mb-6">
-                                    <button className={`flex items-center gap-2 px-4 py-2 rounded ${activeTab === 'portfolio' ? 'bg-blue-500 text-white' : 'bg-gray-800 text-gray-300'}`} onClick={() => setActiveTab('portfolio')}>
-                                        📊 <span>My Portfolio</span>
-                                    </button>
-                                    <button className={`flex items-center gap-2 px-4 py-2 rounded ${activeTab === 'dapps' ? 'bg-blue-500 text-white' : 'bg-gray-800 text-gray-300'}`} onClick={() => setActiveTab('dapps')}>
-                                        🧩 <span>My dApps</span>
-                                    </button>
-                                    <button className={`flex items-center gap-2 px-4 py-2 rounded ${activeTab === 'alephium' ? 'bg-blue-500 text-white' : 'bg-gray-800 text-gray-300'}`} onClick={() => setActiveTab('alephium')}>
-                                        🪙 <span>My Alephium</span>
-                                    </button>
-                                </div>
-                                <AlephiumWalletLayout
-                                    address={walletAddress}
-                                    allWallets={savedWallets}
-                                    isLoggedIn={connected}
-                                    walletStats={walletStats}
-                                    isStatsLoading={isStatsLoading}
-                                    refreshFlag={refreshFlag}
-                                    setRefreshFlag={setRefreshFlag}
-                                    activeTab={activeTab}
-                                />
-                            </div>
-                        )}
-                        {selectedWalletType === "Bitcoin" && (
-                            <BitcoinWalletLayout address={walletAddress} />
-                        )}
-                        {selectedWalletType === "Ergo" && (
-                            <ErgoWalletLayout address={walletAddress} />
-                        )}
-                    </div>
-                    <div>
-                        <WalletManager
-                            currentAddress={walletAddress}
-                            onSelectWallet={setWalletAddress}
-                        />
-                    </div>
-                </div>
-            </div>
+  // Dummy fetch for balance/tokens (replace with real API if needed)
+  useEffect(() => {
+    if (walletAddress) {
+      setBalance(0); // Replace with real fetch
+      setTokens([]); // Replace with real fetch
+    }
+  }, [walletAddress]);
+
+  // Tab click handler
+  const handleTabClick = (tab: string) => {
+    if (tab === "games") {
+      router.push("/games");
+      return;
+    }
+    setActiveTab(tab);
+  };
+
+  return (
+    <div className="min-h-screen bg-black text-white px-6 py-8">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-2xl font-bold">Blockchain Wallet</h1>
+        <div className="flex gap-2">
+          {connected ? (
+            <button
+              className="px-4 py-2 bg-blue-500 rounded text-white"
+              onClick={() => { setConnected(false); setWalletAddress(""); }}
+              type="button"
+            >
+              Disconnect
+            </button>
+          ) : (
+            <button
+              className="px-4 py-2 bg-blue-500 rounded text-white"
+              onClick={handleConnect}
+              type="button"
+            >
+              Connect Alephium Wallet
+            </button>
+          )}
         </div>
-    );
-};
+      </div>
 
-export default WalletsPage;
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6">
+        <button className={`px-4 py-2 rounded ${activeTab === 'portfolio' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'}`} onClick={() => handleTabClick('portfolio')} type="button">My Portfolio</button>
+        <button className={`px-4 py-2 rounded ${activeTab === 'dapps' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'}`} onClick={() => handleTabClick('dapps')} type="button">My dApps</button>
+        <button className={`px-4 py-2 rounded ${activeTab === 'alephium' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'}`} onClick={() => handleTabClick('alephium')} type="button">My Alephium</button>
+        <button className={`px-4 py-2 rounded ${activeTab === 'games' ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-300'}`} onClick={() => handleTabClick('games')} type="button">Games</button>
+      </div>
+
+      {/* Main Content Grid */}
+      {activeTab === 'games' ? null : (
+        <>
+          {/* Wallet Address Card */}
+          <div className="mb-8">
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 flex flex-col gap-2 shadow-lg">
+              <div className="text-xs text-gray-400 mb-1">Current Wallet Address</div>
+              <div className="font-mono text-lg text-blue-300 break-all flex items-center gap-2">
+                {walletAddress ? (
+                  <>
+                    <span title={walletAddress} className="truncate max-w-[220px] inline-block align-middle">{walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}</span>
+                    <button
+                      className="ml-2 px-2 py-1 rounded bg-gray-800 text-gray-300 hover:bg-gray-700 text-xs border border-gray-700"
+                      onClick={() => {navigator.clipboard.writeText(walletAddress)}}
+                      title="Copy address"
+                    >Copy</button>
+                  </>
+                ) : (
+                  <span className="text-gray-500">No wallet selected</span>
+                )}
+              </div>
+              {connectError && (
+                <div className="text-red-400 text-xs mt-2">{connectError} {!window.alephium && <a href="https://chrome.google.com/webstore/detail/alephium-wallet/" target="_blank" rel="noopener noreferrer" className="underline">Install Extension</a>}</div>
+              )}
+            </div>
+          </div>
+
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Portfolio Overview */}
+            <div className="md:col-span-2 bg-gray-900 rounded-xl p-6 mb-6 md:mb-0">
+              <div className="font-semibold text-lg mb-2">Portfolio Overview</div>
+              <div className="text-3xl font-bold text-blue-400 mb-1">{balance.toFixed(2)} ALPH</div>
+              <div className="text-gray-400 text-sm mb-4">Tokens: {tokens.length}</div>
+              <div className="h-32 flex items-center justify-center">
+                <span className="text-gray-600">(Chart coming soon)</span>
+              </div>
+            </div>
+            {/* Sidebar */}
+            <div className="bg-gray-900 rounded-xl p-6">
+              <div className="font-semibold text-lg mb-2">Tracked Wallets</div>
+              <div className="text-gray-400 text-sm mb-2">(Add wallet management here if needed)</div>
+              <div className="mt-2 text-gray-500">
+                {walletAddress ? (
+                  <div>{walletAddress}</div>
+                ) : (
+                  <div>No wallets tracked</div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Token Balances */}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 shadow-lg mt-8">
+            <div className="font-semibold text-lg text-white mb-2">Token Balances</div>
+            <div className="text-gray-400 text-sm">Your token holdings</div>
+            <div className="mt-2 text-gray-500">
+              {tokens.length === 0 ? 'No tokens found in tracked wallets' : `${tokens.length} tokens`}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

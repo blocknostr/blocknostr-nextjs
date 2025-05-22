@@ -1,6 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useNostr } from "@/hooks/useNostr";
+
+// Extend the Window interface to include NostrTools
+declare global {
+    interface Window {
+        NostrTools?: any;
+    }
+}
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { fetchNostrProfile, getHealthyRelays, fetchNostrFeed } from "@/lib/nostr/relay";
@@ -26,6 +33,11 @@ export default function ProfilePage({ userOverride, onClose }: ProfilePageProps)
     const [editing, setEditing] = useState(false);
     const [editDisplayName, setEditDisplayName] = useState("");
     const [editBio, setEditBio] = useState("");
+    const [editUsername, setEditUsername] = useState("");
+    const [editPicture, setEditPicture] = useState("");
+    const [editBanner, setEditBanner] = useState("");
+    const [editWebsite, setEditWebsite] = useState("");
+    const [editNip05, setEditNip05] = useState("");
     const [userPosts, setUserPosts] = useState<NostrEvent[]>([]);
     const [likesCount, setLikesCount] = useState(0);
     const [retweetsCount, setRetweetsCount] = useState(0);
@@ -257,6 +269,11 @@ export default function ProfilePage({ userOverride, onClose }: ProfilePageProps)
         if (userProfile) {
             setEditDisplayName(userProfile.displayName);
             setEditBio(userProfile.bio ?? userProfile.about ?? "");
+            setEditUsername(userProfile.username || "");
+            setEditPicture(userProfile.picture || "");
+            setEditBanner(userProfile.banner || "");
+            setEditWebsite(userProfile.website || "");
+            setEditNip05(userProfile.nip05 || "");
         }
     }, [userProfile]);
 
@@ -312,30 +329,72 @@ export default function ProfilePage({ userOverride, onClose }: ProfilePageProps)
                     aria-label="Close profile pane"
                 >×</button>
             )}
-            {/* Refine the banner and profile header for better visual appeal */}
-            <div className="relative mb-6">
-                <div className="h-40 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-t-xl shadow-lg"></div>
-                <div className="absolute top-20 left-6">
-                    {userProfile?.picture ? (
-                        <img src={userProfile.picture} alt="Profile" className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-md" />
-                    ) : (
-                        <div className="w-28 h-28 bg-gray-700 rounded-full flex items-center justify-center text-3xl font-bold text-gray-300 border-4 border-white shadow-md">
-                            {userProfile?.username?.slice(0, 2)?.toUpperCase() || userProfile?.pubkey?.slice(2, 4)?.toUpperCase()}
+            {/* Profile Card */}
+            <div className="relative mb-8 rounded-xl shadow-xl bg-gradient-to-br from-[#23243a] to-[#181926] border border-gray-800 overflow-hidden">
+                {/* Banner */}
+                <div className="h-40 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+                {/* Avatar and Info */}
+                <div className="flex items-end gap-6 px-8 pb-6 relative -mt-14">
+                    <div className="w-28 h-28 rounded-full border-4 border-white shadow-lg bg-gray-900 flex items-center justify-center overflow-hidden">
+                        {userProfile?.picture ? (
+                            <img src={userProfile.picture} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center text-3xl font-bold text-gray-300">
+                                {userProfile?.username?.slice(0, 2)?.toUpperCase() || userProfile?.pubkey?.slice(2, 4)?.toUpperCase()}
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex-1 flex flex-col gap-1">
+                        <h2 className="text-3xl font-bold leading-tight">{userProfile?.displayName || userProfile?.username || userProfile?.pubkey?.slice(0, 8) + "..."}</h2>
+                        <div className="flex items-center gap-2">
+                            <span className="text-gray-400 text-lg font-mono">@{userProfile?.username || userProfile?.pubkey?.slice(0, 8) + "..."}</span>
                         </div>
-                    )}
+                        {user === pubkey && !editing && (
+                            <button
+                                className="mt-3 w-fit px-5 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition font-semibold shadow-md"
+                                onClick={() => setEditing(true)}
+                            >Edit Profile</button>
+                        )}
+                    </div>
                 </div>
-            </div>
-            <div className="flex items-center gap-4 mb-6">
-                <div>
-                    <h2 className="text-2xl font-bold">{userProfile?.displayName || userProfile?.username || userProfile?.pubkey?.slice(0, 8) + "..."}</h2>
-                    <p className="text-gray-400">@{userProfile?.username || userProfile?.pubkey?.slice(0, 8) + "..."}</p>
-                    {/* Show Edit Profile button if this is your own profile */}
-                    {user === pubkey && !editing && (
-                        <button
-                            className="mt-2 px-4 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition-transform transform hover:scale-105 shadow-lg"
-                            onClick={() => setEditing(true)}
-                        >Edit Profile</button>
-                    )}
+                {/* Stats Row */}
+                <div className="flex gap-8 px-8 py-4 border-t border-gray-800 bg-black/30 text-center text-base font-medium">
+                    <button
+                        type="button"
+                        className={`focus:outline-none transition px-2 py-1 rounded-md ${activeTab === 'posts' ? 'bg-blue-600/20 text-blue-400 font-bold' : 'hover:bg-gray-800 text-white'}`}
+                        onClick={() => setActiveTab('posts')}
+                        aria-current={activeTab === 'posts'}
+                    >
+                        <span className="font-bold">{userPosts.length}</span>
+                        <span className="ml-1">Posts</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`focus:outline-none transition px-2 py-1 rounded-md ${activeTab === 'liked' ? 'bg-blue-600/20 text-blue-400 font-bold' : 'hover:bg-gray-800 text-white'}`}
+                        onClick={() => setActiveTab('liked')}
+                        aria-current={activeTab === 'liked'}
+                    >
+                        <span className="font-bold">{likesCount}</span>
+                        <span className="ml-1">Liked</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`focus:outline-none transition px-2 py-1 rounded-md ${activeTab === 'retweeted' ? 'bg-blue-600/20 text-blue-400 font-bold' : 'hover:bg-gray-800 text-white'}`}
+                        onClick={() => setActiveTab('retweeted')}
+                        aria-current={activeTab === 'retweeted'}
+                    >
+                        <span className="font-bold">{retweetsCount}</span>
+                        <span className="ml-1">Retweeted</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`focus:outline-none transition px-2 py-1 rounded-md ${activeTab === 'following' ? 'bg-blue-600/20 text-blue-400 font-bold' : 'hover:bg-gray-800 text-white'}`}
+                        onClick={() => setActiveTab('following')}
+                        aria-current={activeTab === 'following'}
+                    >
+                        <span className="font-bold">{followingCount}</span>
+                        <span className="ml-1">Following</span>
+                    </button>
                 </div>
             </div>
             {/* Edit Profile Form */}
@@ -344,10 +403,48 @@ export default function ProfilePage({ userOverride, onClose }: ProfilePageProps)
                     className="mb-6 bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col gap-3"
                     onSubmit={async e => {
                         e.preventDefault();
-                        await updateProfile({ display_name: editDisplayName, about: editBio });
+                        await updateProfile({
+                            display_name: editDisplayName,
+                            name: editUsername,
+                            about: editBio,
+                            picture: editPicture,
+                            banner: editBanner,
+                            website: editWebsite,
+                            nip05: editNip05,
+                        });
                         setEditing(false);
                     }}
                 >
+                    <label className="font-semibold">Avatar</label>
+                    <div className="flex items-center gap-4 mb-2">
+                        {editPicture ? (
+                            <img
+                                src={editPicture}
+                                alt="Avatar preview"
+                                className="w-16 h-16 rounded-full object-cover border border-gray-700"
+                            />
+                        ) : (
+                            <div className="w-16 h-16 rounded-full bg-gray-700 flex items-center justify-center text-2xl text-gray-300 border border-gray-700">
+                                {editUsername?.slice(0,2)?.toUpperCase() || userProfile?.pubkey?.slice(2,4)?.toUpperCase()}
+                            </div>
+                        )}
+                        <input
+                            type="file"
+                            accept="image/*"
+                            className="block text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                            aria-label="Upload avatar"
+                            onChange={async e => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => {
+                                        setEditPicture(reader.result as string);
+                                    };
+                                    reader.readAsDataURL(file);
+                                }
+                            }}
+                        />
+                    </div>
                     <label className="font-semibold">Display Name</label>
                     <input
                         className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
@@ -357,174 +454,168 @@ export default function ProfilePage({ userOverride, onClose }: ProfilePageProps)
                     />
                     <label className="font-semibold">Bio</label>
                     <textarea
-                        className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 min-h-[60px]"
+                        className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 resize-none"
                         value={editBio}
                         onChange={e => setEditBio(e.target.value)}
-                        placeholder="Bio"
+                        placeholder="Tell us about yourself"
+                        rows={3}
+                    ></textarea>
+                    <label className="font-semibold">Username</label>
+                    <input
+                        className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
+                        value={editUsername}
+                        onChange={e => setEditUsername(e.target.value)}
+                        placeholder="Username"
                     />
-                    <div className="flex gap-2 mt-2">
-                        <button type="submit" className="px-4 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition">Save</button>
-                        <button type="button" className="px-4 py-1 rounded bg-gray-700 text-white hover:bg-gray-600 transition" onClick={() => setEditing(false)}>Cancel</button>
-                    </div>
+                    <label className="font-semibold">Picture URL</label>
+                    <input
+                        className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
+                        value={editPicture}
+                        onChange={e => setEditPicture(e.target.value)}
+                        placeholder="http://example.com/your-avatar.jpg"
+                    />
+                    <label className="font-semibold">Banner URL</label>
+                    <input
+                        className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
+                        value={editBanner}
+                        onChange={e => setEditBanner(e.target.value)}
+                        placeholder="http://example.com/your-banner.jpg"
+                    />
+                    <label className="font-semibold">Website</label>
+                    <input
+                        className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
+                        value={editWebsite}
+                        onChange={e => setEditWebsite(e.target.value)}
+                        placeholder="http://example.com"
+                    />
+                    <label className="font-semibold">NIP05 (email)</label>
+                    <input
+                        className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
+                        value={editNip05}
+                        onChange={e => setEditNip05(e.target.value)}
+                        placeholder="yourname@domain.com"
+                    />
+                    <button
+                        type="submit"
+                        className="mt-4 px-4 py-2 rounded bg-green-500 text-white hover:bg-green-600 transition-transform transform hover:scale-105 shadow-lg"
+                    >
+                        Save Changes
+                    </button>
                 </form>
             )}
-            {/* Enhance profile stats with tooltips and additional counts */}
-            <div className="flex gap-6 mb-6">
-                <div title="Number of posts made by this user"><span className="font-bold">{userPosts.length}</span> Posts</div>
-                <button title="Posts liked by this user" className={`font-bold ${activeTab === 'liked' ? 'text-blue-400 underline' : ''}`} onClick={() => setActiveTab('liked')}><span>{likesCount}</span> Liked</button>
-                <button title="Posts retweeted by this user" className={`font-bold ${activeTab === 'retweeted' ? 'text-blue-400 underline' : ''}`} onClick={() => setActiveTab('retweeted')}><span>{retweetsCount}</span> Retweeted</button>
-                <button title="Users this profile is following" className={`font-bold ${activeTab === 'following' ? 'text-blue-400 underline' : ''}`} onClick={() => setActiveTab('following')}><span>{followingCount}</span> Following</button>
+            {/* Profile tabs (Posts, Liked, Retweeted, Following) */}
+            <div className="mb-6">
+                <Tabs
+                    defaultValue={activeTab}
+                    onValueChange={(val) => setActiveTab(val as typeof activeTab)}
+                >
+                    <TabsList>
+                        <TabsTrigger value="posts">Posts ({userPosts.length})</TabsTrigger>
+                        <TabsTrigger value="liked">Liked ({likesCount})</TabsTrigger>
+                        <TabsTrigger value="retweeted">Retweeted ({retweetsCount})</TabsTrigger>
+                        <TabsTrigger value="following">Following ({followingCount})</TabsTrigger>
+                    </TabsList>
+                </Tabs>
             </div>
-            {/* Tab content */}
-            {activeTab === 'posts' && (
-                <>
-                    <h3 className="text-xl font-semibold mb-4">Posts</h3>
-                    <div className="flex flex-col gap-4">
-                        {userPosts.map(ev => (
-                            <div key={ev.id} className="relative">
+            {/* Active tab content */}
+            <div>
+                {activeTab === 'posts' && (
+                    <div>
+                        {userPosts.length === 0 ? (
+                            <div className="p-4 text-center text-gray-400">
+                                No posts found for this user.
+                            </div>
+                        ) : (
+                            userPosts.map(ev => (
                                 <Post
+                                    key={ev.id}
                                     event={ev}
-                                    onChatOpen={id => {
-                                        if (activeChatPostId === id) return;
-                                        if (activeChatPostId) {
-                                            handleChatClose(activeChatPostId);
-                                            setTimeout(() => setActiveChatPostId(id), 300);
-                                        } else {
-                                            setActiveChatPostId(id);
-                                        }
-                                    }}
-                                    onChatClose={id => handleChatClose(id)}
-                                    isChatActive={activeChatPostId === ev.id}
-                                    isAnimating={closingChatId === ev.id}
-                                    chatCount={chatCounts?.[ev.id] || 0}
+                                    onChatOpen={() => {}}
+                                    onChatClose={() => {}}
+                                    isChatActive={false}
+                                    isAnimating={false}
+                                    chatCount={chatCounts[ev.id] || 0}
                                 />
-                                {activeChatPostId === ev.id && (
-                                    <ChatBox
-                                        postId={ev.id}
-                                        pubkey={pubkey}
-                                        onClose={() => handleChatClose(ev.id)}
-                                        isAnimating={closingChatId === ev.id}
-                                    />
-                                )}
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
-                </>
-            )}
-            {activeTab === 'liked' && (
-                <>
-                    <h3 className="text-xl font-semibold mb-4">Liked Posts</h3>
-                    <div className="flex flex-col gap-4">
-                        {likedPosts.map(ev => (
-                            <div key={ev.id} className="bg-gray-900 border border-gray-800 rounded-xl p-5 shadow-lg">
-                                <div className="text-lg text-white whitespace-pre-line break-words mb-1">{ev.content}</div>
-                                <p className="text-xs text-gray-500 mt-2">{new Date(ev.created_at * 1000 || ev.created_at).toLocaleString()}</p>
-                                <Link href={`/profile?user=${ev.pubkey}`} className="text-blue-400 hover:underline text-xs mt-2 inline-block">View Profile</Link>
-                            </div>
-                        ))}
-                        {likedPosts.length === 0 && <div className="text-gray-400">No liked posts found.</div>}
+                )}
+                {activeTab === 'liked' && (
+                    <div>
+                        {likedPosts.length === 0 ? (
+                            <div className="p-4 text-center text-gray-400">No liked posts found.</div>
+                        ) : (
+                            likedPosts.map(ev => (
+                                <Post
+                                    key={ev.id}
+                                    event={ev}
+                                    onChatOpen={() => {}}
+                                    onChatClose={() => {}}
+                                    isChatActive={false}
+                                    isAnimating={false}
+                                    chatCount={chatCounts[ev.id] || 0}
+                                />
+                            ))
+                        )}
                     </div>
-                </>
-            )}
-            {activeTab === 'retweeted' && (
-                <>
-                    <h3 className="text-xl font-semibold mb-4">Retweeted Posts</h3>
-                    <div className="flex flex-col gap-4">
-                        {retweetedPosts.map(ev => (
-                            <div key={ev.id} className="bg-gray-900 border border-gray-800 rounded-xl p-5 shadow-lg">
-                                <div className="text-lg text-white whitespace-pre-line break-words mb-1">{ev.content}</div>
-                                <p className="text-xs text-gray-500 mt-2">{new Date(ev.created_at * 1000 || ev.created_at).toLocaleString()}</p>
-                                <Link href={`/profile?user=${ev.pubkey}`} className="text-blue-400 hover:underline text-xs mt-2 inline-block">View Profile</Link>
-                            </div>
-                        ))}
-                        {retweetedPosts.length === 0 && <div className="text-gray-400">No retweeted posts found.</div>}
+                )}
+                {activeTab === 'retweeted' && (
+                    <div>
+                        {retweetedPosts.length === 0 ? (
+                            <div className="p-4 text-center text-gray-400">No retweeted posts found.</div>
+                        ) : (
+                            retweetedPosts.map(ev => (
+                                <Post
+                                    key={ev.id}
+                                    event={ev}
+                                    onChatOpen={() => {}}
+                                    onChatClose={() => {}}
+                                    isChatActive={false}
+                                    isAnimating={false}
+                                    chatCount={chatCounts[ev.id] || 0}
+                                />
+                            ))
+                        )}
                     </div>
-                </>
-            )}
-            {activeTab === 'following' && (
-                <>
-                    <h3 className="text-xl font-semibold mb-4">Following</h3>
-                    <input
-                        type="text"
-                        value={followingFilter}
-                        onChange={e => setFollowingFilter(e.target.value)}
-                        placeholder="Search following..."
-                        className="mb-4 px-4 py-2 rounded-full bg-gray-900 border border-gray-700 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500/30 placeholder-gray-500 w-full"
-                    />
-                    <div className="flex flex-col gap-4">
-                        {followingUsers
-                            .filter(user => {
-                                const hasUsername = user.username && user.username !== user.pubkey;
-                                const shortPubkey = user.pubkey ? `${user.pubkey.slice(0, 8)}...${user.pubkey.slice(-6)}` : '';
-                                const displayName = hasUsername ? user.displayName : shortPubkey;
-                                const username = hasUsername ? user.username : shortPubkey;
-                                const q = followingFilter.toLowerCase();
-                                return (
-                                    displayName.toLowerCase().includes(q) ||
-                                    username.toLowerCase().includes(q) ||
-                                    user.pubkey.toLowerCase().includes(q)
-                                );
-                            })
-                            .map(user => {
-                                const hasUsername = user.username && user.username !== user.pubkey;
-                                const shortPubkey = user.pubkey ? `${user.pubkey.slice(0, 8)}...${user.pubkey.slice(-6)}` : '';
-                                const displayName = hasUsername ? user.displayName : shortPubkey;
-                                const username = hasUsername ? user.username : shortPubkey;
-                                const following = isFollowing && isFollowing(user.pubkey);
-                                return (
-                                    <div
-                                        key={user.pubkey}
-                                        className="bg-gray-900 border border-gray-800 rounded-xl p-5 shadow-lg flex items-center gap-4 hover:bg-gray-800 transition group"
-                                    >
-                                        {user.picture ? (
-                                            <img src={user.picture} alt="avatar" className="w-12 h-12 rounded-full border border-gray-800 object-cover" />
-                                        ) : (
-                                            <div className="w-12 h-12 rounded-full border border-gray-800 bg-gray-700 flex items-center justify-center text-2xl font-bold text-gray-300">
-                                                {displayName[0]}
-                                            </div>
-                                        )}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="text-lg text-white font-semibold truncate">{displayName}</div>
-                                            <div className="text-gray-400 truncate">@{username}</div>
-                                            <Link href={`/profile?user=${user.pubkey}`} className="text-blue-400 hover:underline text-xs mt-2 inline-block">View Profile</Link>
+                )}
+                {activeTab === 'following' && (
+                    <div>
+                        {followingUsers.length === 0 ? (
+                            <div className="p-4 text-center text-gray-400">Not following anyone yet.</div>
+                        ) : (
+                            followingUsers.map(user => (
+                                <div key={user.pubkey} className="flex items-center gap-4 p-3 border-b border-gray-800 hover:bg-gray-900/60 transition group">
+                                    <img src={user.picture || '/file.svg'} alt="avatar" className="w-12 h-12 rounded-full object-cover border border-gray-700 bg-black" />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-semibold text-white truncate text-base">{user.displayName || user.username || user.pubkey.slice(0, 8) + '...'}</span>
+                                            <span className="text-xs text-gray-400">@{user.username || user.pubkey.slice(0, 8) + '...'}</span>
                                         </div>
-                                        {/* Follow/Unfollow button, only if not self */}
-                                        {user.pubkey !== pubkey && (
-                                            following ? (
-                                                <button
-                                                    className="ml-4 px-4 py-1 rounded-full bg-gray-800 text-white border border-gray-600 hover:bg-gray-700 transition text-sm font-semibold group-hover:bg-pink-900/30 group-hover:text-pink-400"
-                                                    onClick={() => unfollowUser(user.pubkey)}
-                                                >Unfollow</button>
-                                            ) : (
-                                                <button
-                                                    className="ml-4 px-4 py-1 rounded-full bg-blue-500 text-white hover:bg-blue-600 transition text-sm font-semibold group-hover:ring-2 group-hover:ring-blue-400"
-                                                    onClick={() => followUser(user.pubkey)}
-                                                >Follow</button>
-                                            )
-                                        )}
+                                        <div className="text-xs text-gray-500 font-mono break-all">
+                                            {user.pubkey ?
+                                                `npub1${window.NostrTools?.nip19?.npubEncode ? window.NostrTools.nip19.npubEncode(user.pubkey).slice(5, 15) + '...' + window.NostrTools.nip19.npubEncode(user.pubkey).slice(-6) : user.pubkey.slice(0, 12) + '...' + user.pubkey.slice(-6)}`
+                                                : ''}
+                                        </div>
                                     </div>
-                                );
-                            })}
-                        {followingUsers.length === 0 && <div className="text-gray-400">Not following anyone yet.</div>}
+                                    {pubkey !== user.pubkey && (
+                                        isFollowing && isFollowing(user.pubkey) ? (
+                                            <button
+                                                className="px-4 py-1 rounded bg-gray-700 text-white hover:bg-gray-600 text-xs font-semibold"
+                                                onClick={() => unfollowUser(user.pubkey)}
+                                            >Unfollow</button>
+                                        ) : (
+                                            <button
+                                                className="px-4 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 text-xs font-semibold"
+                                                onClick={() => followUser(user.pubkey)}
+                                            >Follow</button>
+                                        )
+                                    )}
+                                </div>
+                            ))
+                        )}
                     </div>
-                </>
-            )}
-            {/* Lightbox overlay for media display */}
-            {lightboxMedia && (
-                <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
-                    <button
-                        className="absolute top-4 right-4 text-white text-3xl hover:text-gray-300"
-                        onClick={() => setLightboxMedia(null)}
-                    >
-                        &times;
-                    </button>
-                    {lightboxMedia.match(/\.(jpeg|jpg|gif|png)$/i) ? (
-                        <img src={lightboxMedia} alt="media" className="max-w-full max-h-full rounded-lg shadow-lg" />
-                    ) : (
-                        <video src={lightboxMedia} controls className="max-w-full max-h-full rounded-lg shadow-lg" />
-                    )}
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }

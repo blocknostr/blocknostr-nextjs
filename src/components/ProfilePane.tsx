@@ -77,6 +77,18 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
         }
     }, [userProfile]);
 
+    const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            if (typeof reader.result === 'string') {
+                setEditPicture(reader.result);
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
     if (!isOpen) return null;
     if (loading) {
         return (
@@ -122,8 +134,30 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
                         )}
                     </div>
                     <div className="min-w-0 flex flex-col">
-                        <span className="font-semibold text-white truncate text-lg">{userProfile?.displayName || userProfile?.username || userProfile?.pubkey?.slice(0, 8) + "..."}</span>
-                        <span className="text-sm text-gray-400">@{userProfile?.username || userProfile?.pubkey?.slice(0, 8) + "..."}</span>
+                        <div className="flex items-center gap-2">
+                            <span className="font-semibold text-white truncate text-lg">{userProfile?.displayName || userProfile?.username || userProfile?.pubkey?.slice(0, 8) + "..."}</span>
+                            {/* NIP-05 Verification Badge */}
+                            {userProfile?.nip05 && (
+                                <span
+                                    className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ml-1 ${userProfile.nip05_verified ? 'bg-blue-500 text-white' : 'bg-gray-700 text-gray-300'}`}
+                                    title={userProfile.nip05_verified ? `NIP-05 Verified: ${userProfile.nip05}` : `NIP-05: ${userProfile.nip05}`}
+                                >
+                                    {userProfile.nip05_verified ? '✔' : '✖'} {userProfile.nip05}
+                                </span>
+                            )}
+                        </div>
+                        <span className="text-sm text-gray-400 truncate">@{userProfile?.username || userProfile?.pubkey?.slice(0, 8) + "..."}</span>
+                        {/* Website link if present */}
+                        {userProfile?.website && (
+                            <a
+                                href={userProfile.website.startsWith('http') ? userProfile.website : `https://${userProfile.website}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-400 hover:underline mt-1 truncate"
+                            >
+                                {userProfile.website.replace(/^https?:\/\//, '')}
+                            </a>
+                        )}
                         {isSelf && (
                             <button
                                 className="mt-2 px-4 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition"
@@ -190,11 +224,22 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
                         />
                         <label className="font-semibold">Picture URL</label>
                         <input
-                            className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
+                            className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700 mb-1"
                             value={editPicture}
                             onChange={e => setEditPicture(e.target.value)}
-                            placeholder="https://example.com/avatar.png"
+                            placeholder="https://example.com/avatar.png or base64"
                         />
+                        <input
+                            type="file"
+                            accept="image/*"
+                            className="mb-2"
+                            onChange={handleAvatarUpload}
+                            title="Upload avatar image"
+                            placeholder="Choose an image file"
+                        />
+                        {editPicture && (
+                            <img src={editPicture} alt="avatar preview" className="w-20 h-20 rounded-full object-cover border border-white/20 mb-2" />
+                        )}
                         <label className="font-semibold">Banner URL</label>
                         <input
                             className="px-3 py-2 rounded bg-gray-800 text-white border border-gray-700"
@@ -234,9 +279,9 @@ export function ProfilePane({ pubkey, isOpen, onClose, isSelf }: ProfilePaneProp
                                 <div className="mt-2">
                                     {ev.media.map((url: string, idx: number) => (
                                         url.match(/\.(jpeg|jpg|gif|png)$/i) ? (
-                                            <img key={idx} src={url} alt="media" className="rounded-xl object-cover border border-gray-800 bg-black w-full h-60 mb-2" style={{ objectFit: 'cover' }} />
+                                            <img key={idx} src={url} alt="media" className="rounded-xl object-cover border border-gray-800 bg-black w-full h-60 mb-2" />
                                         ) : url.match(/\.(mp4|webm)$/i) ? (
-                                            <video key={idx} controls className="rounded-xl border border-gray-800 bg-black w-full max-h-96 shadow-lg mb-2" style={{ objectFit: 'cover' }}>
+                                            <video key={idx} controls className="rounded-xl border border-gray-800 bg-black w-full max-h-96 shadow-lg mb-2 object-cover">
                                                 <source src={url} />
                                             </video>
                                         ) : null

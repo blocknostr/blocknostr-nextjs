@@ -11,9 +11,25 @@ export default function ChatPage() {
     const [isSending, setIsSending] = useState(false);
     const [sendError, setSendError] = useState<string | null>(null);
     const chatEndRef = useRef<HTMLDivElement>(null);
+    const LOCAL_KEY = "nostr_global_chat_local";
 
     // Only show kind 1 events (global chat posts)
-    const chatEvents = events.filter(ev => (ev as any).kind === 1);
+    const relayChatEvents = events.filter(ev => (ev as any).kind === 1);
+    const [localChatEvents, setLocalChatEvents] = useState<any[]>([]);
+
+    // On mount, load local chat events
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem(LOCAL_KEY);
+            if (raw) {
+                setLocalChatEvents(JSON.parse(raw));
+            }
+        } catch {}
+    }, []);
+
+    // Merge relay and local events, deduplicate by id
+    const chatEvents = [...relayChatEvents, ...localChatEvents.filter(ev => !relayChatEvents.some(e => e.id === ev.id))]
+        .sort((a, b) => a.created_at - b.created_at);
 
     // Scroll to bottom on new message
     useEffect(() => {
@@ -26,8 +42,24 @@ export default function ChatPage() {
         setIsSending(true);
         setSendError(null);
         try {
+            const before = Date.now();
             await post(content);
             setContent("");
+            // Save to localStorage for persistence
+            const newEvent = {
+                id: `local-${before}`,
+                pubkey,
+                content,
+                created_at: Math.floor(before / 1000),
+                kind: 1,
+                tags: [],
+                profile: undefined,
+            };
+            setLocalChatEvents(prev => {
+                const updated = [...prev, newEvent];
+                localStorage.setItem(LOCAL_KEY, JSON.stringify(updated));
+                return updated;
+            });
         } catch (err: any) {
             setSendError("Failed to send message");
         } finally {

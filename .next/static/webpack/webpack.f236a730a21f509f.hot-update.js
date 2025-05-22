@@ -51,9 +51,30 @@ self["webpackHotUpdate_N_E"]("webpack",{},
 /******/ 	};
 /******/ })();
 /******/ 
+/******/ /* webpack/runtime/get javascript chunk filename */
+/******/ (() => {
+/******/ 	// This function allow to reference async chunks
+/******/ 	__webpack_require__.u = (chunkId) => {
+/******/ 		// return url for filenames based on template
+/******/ 		return "static/chunks/" + chunkId + ".js";
+/******/ 	};
+/******/ })();
+/******/ 
 /******/ /* webpack/runtime/getFullHash */
 /******/ (() => {
-/******/ 	__webpack_require__.h = () => ("8bdd90bf4d1da2ee")
+/******/ 	__webpack_require__.h = () => ("d0fa7cd9ed947a00")
+/******/ })();
+/******/ 
+/******/ /* webpack/runtime/global */
+/******/ (() => {
+/******/ 	__webpack_require__.g = (function() {
+/******/ 		if (typeof globalThis === 'object') return globalThis;
+/******/ 		try {
+/******/ 			return this || new Function('return this')();
+/******/ 		} catch (e) {
+/******/ 			if (typeof window === 'object') return window;
+/******/ 		}
+/******/ 	})();
 /******/ })();
 /******/ 
 /******/ }
