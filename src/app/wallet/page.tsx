@@ -2,6 +2,13 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
+// Extend the Window interface to include alephium
+declare global {
+  interface Window {
+    alephium?: any;
+  }
+}
+
 export default function WalletPage() {
   const [connected, setConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState("");
