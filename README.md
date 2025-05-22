@@ -37,3 +37,4 @@ A simple Twitter/X-like social feed built with Next.js and NOSTR protocol integr
 
 This project was bootstrapped with [Next.js](https://nextjs.org).
 # blocknostr-nextjs
+# blocknostr-nextjs
