@@ -610,6 +610,29 @@ export default function Home() {
   }, [activePane, profilePanePubkey]);
 
   // --- Layout Refactor Start ---
+  // Relay health state
+  const [healthyRelayCount, setHealthyRelayCount] = useState<number | null>(null);
+  const [checkingRelays, setCheckingRelays] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    async function checkRelays() {
+      setCheckingRelays(true);
+      try {
+        const { healthyRelays } = await getHealthyRelays();
+        if (mounted) setHealthyRelayCount(healthyRelays.length);
+      } catch {
+        if (mounted) setHealthyRelayCount(null);
+      } finally {
+        if (mounted) setCheckingRelays(false);
+      }
+    }
+    checkRelays();
+    // Optionally, re-check every 2 minutes
+    const interval = setInterval(checkRelays, 120000);
+    return () => { mounted = false; clearInterval(interval); };
+  }, []);
+
+  // --- Layout Refactor Start ---
   return (
     <div className="min-h-screen w-full bg-black flex flex-row">
       {/* Left Sidebar (fixed) */}
@@ -694,6 +717,28 @@ export default function Home() {
                 </div>
               ) : (
                 <div className="text-xs text-gray-400 mb-2 text-center">Loading global post count...</div>
+              )}
+
+              {/* Relay Health Warning */}
+              {healthyRelayCount !== null && healthyRelayCount < 3 && (
+                <div className="mb-4 p-3 rounded-xl bg-yellow-900/80 border border-yellow-600 text-yellow-200 text-center flex flex-col items-center gap-2">
+                  <span className="font-semibold">⚠️ Low relay connectivity</span>
+                  <span>Only {healthyRelayCount} healthy relay{healthyRelayCount === 1 ? '' : 's'} detected. Some posts may be missing or delayed.</span>
+                  <button
+                    className="mt-1 px-3 py-1 rounded bg-yellow-700 text-white hover:bg-yellow-800 text-xs font-semibold"
+                    onClick={() => {
+                      setHealthyRelayCount(null);
+                      setCheckingRelays(true);
+                      getHealthyRelays().then(({ healthyRelays }) => {
+                        setHealthyRelayCount(healthyRelays.length);
+                        setCheckingRelays(false);
+                      }).catch(() => setCheckingRelays(false));
+                    }}
+                    disabled={checkingRelays}
+                  >
+                    {checkingRelays ? 'Checking...' : 'Retry Relays'}
+                  </button>
+                </div>
               )}
             </div>
 

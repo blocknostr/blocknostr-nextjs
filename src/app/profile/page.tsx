@@ -348,6 +348,20 @@ export default function ProfilePage({ userOverride, onClose }: ProfilePageProps)
                         <h2 className="text-3xl font-bold leading-tight">{userProfile?.displayName || userProfile?.username || userProfile?.pubkey?.slice(0, 8) + "..."}</h2>
                         <div className="flex items-center gap-2">
                             <span className="text-gray-400 text-lg font-mono">@{userProfile?.username || userProfile?.pubkey?.slice(0, 8) + "..."}</span>
+                            {/* Follow/Unfollow button for other users */}
+                            {user !== pubkey && userProfile?.pubkey && (
+                                isFollowing && isFollowing(userProfile.pubkey) ? (
+                                    <button
+                                        className="ml-2 px-4 py-1 rounded bg-gray-700 text-white hover:bg-gray-600 text-xs font-semibold"
+                                        onClick={() => unfollowUser(userProfile.pubkey)}
+                                    >Unfollow</button>
+                                ) : (
+                                    <button
+                                        className="ml-2 px-4 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 text-xs font-semibold"
+                                        onClick={() => followUser(userProfile.pubkey)}
+                                    >Follow</button>
+                                )
+                            )}
                         </div>
                         {user === pubkey && !editing && (
                             <button
